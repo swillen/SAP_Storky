@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="page">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Transport</title>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+</head>
+
+<body>
+    <div ng-include="'../header.html'"></div>
+
+    <div id="wrap" ng-controller="GetCitiesController">
+        <div class="row">
+            <div class="col-lg-12">
+                <h1 class="page-header"></h1>
+            </div>
+        </div>
+        <div class="container">
+            <div class="col-lg-3">
+                <form role="form">
+                    <div>
+                        <div class="form-group">
+                            <label for="typeOfTransport">
+                                Choose your type of Travel
+                            </label>
+                            <select class="form-control" id="typeOfTransport" ng-click="getCitiesByType()" required>
+                                <option value="" disabled selected>Select your option</option>
+                                <option>Airplane</option>
+                                <option>Bus</option>
+                                <option>Train</option>
+                                <option>Any</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="fromCity">
+                                From
+                            </label>
+                            <select class="form-control" id="fromCity" required>
+                                <option ng-repeat="city in data">{{city.airport_city}}</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="toCity">
+                                To
+                            </label>
+                            <select class="form-control" id="toCity" required>
+                                <option ng-repeat="city in data">{{city.airport_city}}</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="datePicker">
+                                Pick Date
+                            </label>
+                            <input type="date" class="form-control" id="datePicker" ng-click="getDate()" ng-model="showDate" required>
+                            <!--<h4>{{showDate}}</h4> -->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-info btn-lg btn-block" ng-click="fillter()" ng-disabled="form.$invalid">Search</button>
+                    </div>
+                </form>
+            </div>
+            <div>
+              
+            </div>
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.7/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.7/angular-resource.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.7/angular-animate.min.js"></script>
+    <script src="https://angular-ui.github.io/bootstrap/ui-bootstrap-tpls-0.14.3.js"></script>
+    <script src="transport.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
+    <div ng-include="'../footer.html'"></div>
+</body>
+
+</html>
