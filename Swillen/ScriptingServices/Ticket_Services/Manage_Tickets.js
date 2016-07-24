@@ -1,7 +1,7 @@
 /* globals $ */
 /* eslint-env node, dirigible */
 
-var entityView_cities = require('City_Services/List_Cities_lib');
+var entityTickets = require('/Ticket_Services/Manage_Tickets_lib.js');
 var request = require("net/http/request");
 var response = require("net/http/response");
 var xss = require("utils/xss");
@@ -17,14 +17,17 @@ function handleRequest() {
 	var method = request.getMethod();
 	method = method.toUpperCase();
 	
+	//get primary keys (one primary key is supported!)
+	var idParameter = entityTickets.getPrimaryKey();
+	
 	// retrieve the id as parameter if exist 
+	var id = xss.escapeSql(request.getParameter(idParameter));
 	var count = xss.escapeSql(request.getParameter('count'));
 	var metadata = xss.escapeSql(request.getParameter('metadata'));
 	var sort = xss.escapeSql(request.getParameter('sort'));
 	var limit = xss.escapeSql(request.getParameter('limit'));
 	var offset = xss.escapeSql(request.getParameter('offset'));
 	var desc = xss.escapeSql(request.getParameter('desc'));
-	var type = xss.escapeSql(request.getParameter('type'));
 	
 	if (limit === null) {
 		limit = 100;
@@ -33,27 +36,32 @@ function handleRequest() {
 		offset = 0;
 	}
 	
-	if(!entityView_cities.hasConflictingParameters(null, count, metadata)) {
+	if(!entityTickets.hasConflictingParameters(id, count, metadata)) {
 		// switch based on method type
-		if ((method === 'GET')) {
+		if ((method === 'POST')) {
+			// create
+			entityTickets.createTickets();
+		} else if ((method === 'GET')) {
 			// read
-			if (count !== null) {
-				entityView_cities.countView_cities();
+			if (id) {
+				entityTickets.readTicketsEntity(id);
+			} else if (count !== null) {
+				entityTickets.countTickets();
 			} else if (metadata !== null) {
-				entityView_cities.metadataView_cities();
-			} else if (type !== null) {
-				if (type == "Any") {
-					entityView_cities.readView_citiesListByTypeAny(limit,offset,sort,desc);
-				} else {
-					entityView_cities.readView_citiesListByType(type,limit,offset,sort,desc);
-				}
-
-					} else {
-				entityView_cities.readView_citiesList(limit, offset, sort, desc);
+				entityTickets.metadataTickets();
+			} else {
+				entityTickets.readTicketsList(limit, offset, sort, desc);
+			}
+		} else if ((method === 'PUT')) {
+			// update
+			entityTickets.updateTickets();    
+		} else if ((method === 'DELETE')) {
+			// delete
+			if(entityTickets.isInputParameterValid(idParameter)){
+				entityTickets.deleteTickets(id);
 			}
 		} else {
-			// create, update, delete
-			entityView_cities.printError(response.METHOD_NOT_ALLOWED, 4, "Method not allowed"); 
+			entityTickets.printError(response.BAD_REQUEST, 4, "Invalid HTTP Method", method);
 		}
 	}
 	

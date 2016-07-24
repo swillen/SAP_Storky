@@ -8,7 +8,7 @@ var database = require("db/database");
 var datasource = database.getDatasource();
 
 // read all entities and print them as JSON array to response
-exports.readView_citiesList = function(limit, offset, sort, desc) {
+exports.readView_ticketsList = function(limit, offset, sort, desc) {
     var connection = datasource.getConnection();
     try {
         var result = [];
@@ -16,7 +16,7 @@ exports.readView_citiesList = function(limit, offset, sort, desc) {
         if (limit !== null && offset !== null) {
             sql += " " + datasource.getPaging().genTopAndStart(limit, offset);
         }
-        sql += " * FROM VIEW_CITIES";
+        sql += " * FROM VIEW_TICKETS";
         if (sort !== null) {
             sql += " ORDER BY " + sort;
         }
@@ -41,8 +41,7 @@ exports.readView_citiesList = function(limit, offset, sort, desc) {
     }
 };
 
-//read entities by chosen type (e.g Airplane)
-exports.readView_citiesListByType = function(type, limit, offset, sort, desc) {
+exports.getFiltered = function(type,fromCity,toCity,date,limit, offset, sort, desc) {
     var connection = datasource.getConnection();
     try {
         var result = [];
@@ -50,10 +49,15 @@ exports.readView_citiesListByType = function(type, limit, offset, sort, desc) {
         if (limit !== null && offset !== null) {
             sql += " " + datasource.getPaging().genTopAndStart(limit, offset);
         }
-        sql += " * FROM VIEW_CITIES";
-         if (type !== null) {
-    	sql += " WHERE TRANSPORT_TYPE = " + "'" + type + "'"  ;
- 	   }
+        sql += " * FROM VIEW_TICKETS";
+        if(type !== null && fromCity !== null && toCity !== null && date !== null){
+        if(type == "Any"){
+       	 sql += " WHERE VIEW_TICKETS.DEPARTURE_CITY_ID = " + fromCity + " AND VIEW_TICKETS.ARRIVAL_CITY_ID = " + toCity + " AND VIEW_TICKETS.TRANSPORT_DEPARTURE_DATE='" + date + " 16:20:00.0'";
+        }
+        else {
+        	sql += " WHERE VIEW_TICKETS.TRANSPORT_TYPE = '"+type+"' AND VIEW_TICKETS.DEPARTURE_CITY_ID = " + fromCity + " AND VIEW_TICKETS.ARRIVAL_CITY_ID = " + toCity + " AND VIEW_TICKETS.TRANSPORT_DEPARTURE_DATE='" + date + " 16:20:00.0'";
+        }
+    }
 
         if (sort !== null) {
             sql += " ORDER BY " + sort;
@@ -79,59 +83,33 @@ exports.readView_citiesListByType = function(type, limit, offset, sort, desc) {
     }
 };
 
-//read all cities by name for any type of transport
-
-exports.readView_citiesListByTypeAny = function(limit, offset, sort, desc) {
-    var connection = datasource.getConnection();
-    
-    try {
-        var result = [];
-        var sql = "SELECT ";
-        if (limit !== null && offset !== null) {
-            sql += " " + datasource.getPaging().genTopAndStart(limit, offset);
-        }
-        sql += "AIRPORT_CITY,AIRPORT_ID FROM VIEW_CITIES GROUP BY AIRPORT_CITY,AIRPORT_ID";
-             
-        if (sort !== null) {
-            sql += " ORDER BY " + sort;
-        }
-        if (sort !== null && desc !== null) {
-            sql += " DESC ";
-        }
-        if (limit !== null && offset !== null) {
-            sql += " " + datasource.getPaging().genLimitAndOffset(limit, offset);
-        }
-        var statement = connection.prepareStatement(sql);
-        var resultSet = statement.executeQuery();
-        while (resultSet.next()) {
-            result.push(createEntity2(resultSet));
-        }
-        var jsonResponse = JSON.stringify(result, null, 2);
-        response.println(jsonResponse);
-    } catch(e){
-        var errorCode = response.BAD_REQUEST;
-        exports.printError(errorCode, errorCode, e.message);
-    } finally {
-        connection.close();
-    }
-};
-
-function createEntity2(resultSet) {
-    var result = {};
-       result.airport_city = resultSet.getString("AIRPORT_CITY");
-       result.airport_id = resultSet.getInt("AIRPORT_ID")
-       return result;
-}
 //create entity as JSON object from ResultSet current Row
 function createEntity(resultSet) {
     var result = {};
     result.transport_type = resultSet.getString("TRANSPORT_TYPE");
-    result.airport_city = resultSet.getString("AIRPORT_CITY");
-    result.airport_latitude = resultSet.getDouble("AIRPORT_LATITUDE");
-    result.airport_longitude = resultSet.getDouble("AIRPORT_LONGITUDE");
-    result.airport_country = resultSet.getString("AIRPORT_COUNTRY");
-    result.airport_timezone = resultSet.getDouble("AIRPORT_TIMEZONE");
-	result.airport_id = resultSet.getInt("AIRPORT_ID");	
+    result.ticket_class = resultSet.getString("TICKET_CLASS");
+    result.ticket_price = resultSet.getDouble("TICKET_PRICE");
+	result.ticket_available = resultSet.getInt("TICKET_AVAILABLE");
+	result.departure_city_id = resultSet.getInt("DEPARTURE_CITY_ID");
+    result.departure_city = resultSet.getString("DEPARTURE_CITY");
+    if (resultSet.getTimestamp("TRANSPORT_DEPARTURE_DATE") !== null) {
+        result.transport_departure_date = new Date(resultSet.getTimestamp("TRANSPORT_DEPARTURE_DATE").getTime());
+    } else {
+        result.transport_departure_date = null;
+    }
+    result.departure_country = resultSet.getString("DEPARTURE_COUNTRY");
+    result.departure_long = resultSet.getDouble("DEPARTURE_LONG");
+    result.departure_lat = resultSet.getDouble("DEPARTURE_LAT");
+	result.arrival_city_id = resultSet.getInt("ARRIVAL_CITY_ID");
+    result.arrival_city = resultSet.getString("ARRIVAL_CITY");
+    if (resultSet.getTimestamp("TRANSPORT_ARRIVAL_DATE") !== null) {
+        result.transport_arrival_date = new Date(resultSet.getTimestamp("TRANSPORT_ARRIVAL_DATE").getTime());
+    } else {
+        result.transport_arrival_date = null;
+    }
+    result.arrival_country = resultSet.getString("ARRIVAL_COUNTRY");
+    result.arrival_long = resultSet.getDouble("ARRIVAL_LONG");
+    result.arrival_lat = resultSet.getDouble("ARRIVAL_LAT");
     return result;
 }
 
@@ -140,14 +118,14 @@ function convertToDateString(date) {
     var month = date.getMonth() < 10 ? "0" + date.getMonth() : date.getMonth();
     var dateOfMonth = date.getDate() < 10 ? "0" + date.getDate() : date.getDate();
     return fullYear + "/" + month + "/" + dateOfMonth;
-};
+}
 
 
-exports.countView_cities = function() {
+exports.countView_tickets = function() {
     var count = 0;
     var connection = datasource.getConnection();
     try {
-    	var sql = 'SELECT COUNT(*) FROM VIEW_CITIES';
+    	var sql = 'SELECT COUNT(*) FROM VIEW_TICKETS';
         var statement = connection.prepareStatement(sql);
         var rs = statement.executeQuery();
         if (rs.next()) {
@@ -162,59 +140,111 @@ exports.countView_cities = function() {
     response.println(count);
 };
 
-
-
-exports.metadataView_cities = function() {
+exports.metadataView_tickets = function() {
 	var entityMetadata = {
-		name: 'view_cities',
+		name: 'view_tickets',
 		type: 'object',
 		properties: []
 	};
+	
 	var propertytransport_type = {
-	name: 'tranport_type',
-	type: 'string'
-}
-	entityMetadata.properties.push(propertytransport_type);
-	var propertyairport_city = {
-		name: 'airport_city',
+		name: 'transport_type',
 		type: 'string'
 	};
-    entityMetadata.properties.push(propertyairport_city);
+    entityMetadata.properties.push(propertytransport_type);
 
-	var propertyairport_latitude = {
-		name: 'airport_latitude',
-		type: 'double'
-	};
-    entityMetadata.properties.push(propertyairport_latitude);
-
-	var propertyairport_longitude = {
-		name: 'airport_longitude',
-		type: 'double'
-	};
-    entityMetadata.properties.push(propertyairport_longitude);
-
-	var propertyairport_country = {
-		name: 'airport_country',
+	var propertyticket_class = {
+		name: 'ticket_class',
 		type: 'string'
 	};
-	entityMetadata.properties.push(propertyairport_country);
-	
-	var propertyairport_timezone = {
-	name: "airport_timezone",
-	type: "double"
-};
-	entityMetadata.properties.push(propertyairport_timezone);
-	
-		var propertyairport_id = {
-		name: 'airport_id',
+    entityMetadata.properties.push(propertyticket_class);
+
+	var propertyticket_price = {
+		name: 'ticket_price',
+		type: 'double'
+	};
+    entityMetadata.properties.push(propertyticket_price);
+
+	var propertyticket_available = {
+		name: 'ticket_available',
 		type: 'integer'
 	};
-    entityMetadata.properties.push(propertyairport_id);
+    entityMetadata.properties.push(propertyticket_available);
+
+	var propertydeparture_city_id = {
+		name: 'departure_city_id',
+		type: 'integer'
+	};
+    entityMetadata.properties.push(propertydeparture_city_id);
+
+	var propertydeparture_city = {
+		name: 'departure_city',
+		type: 'string'
+	};
+    entityMetadata.properties.push(propertydeparture_city);
+
+	var propertytransport_departure_date = {
+		name: 'transport_departure_date',
+		type: 'timestamp'
+	};
+    entityMetadata.properties.push(propertytransport_departure_date);
+
+	var propertydeparture_country = {
+		name: 'departure_country',
+		type: 'string'
+	};
+    entityMetadata.properties.push(propertydeparture_country);
+
+	var propertydeparture_long = {
+		name: 'departure_long',
+		type: 'double'
+	};
+    entityMetadata.properties.push(propertydeparture_long);
+
+	var propertydeparture_lat = {
+		name: 'departure_lat',
+		type: 'double'
+	};
+    entityMetadata.properties.push(propertydeparture_lat);
+
+	var propertyarrival_city_id = {
+		name: 'arrival_city_id',
+		type: 'integer'
+	};
+    entityMetadata.properties.push(propertyarrival_city_id);
+
+	var propertyarrival_city = {
+		name: 'arrival_city',
+		type: 'string'
+	};
+    entityMetadata.properties.push(propertyarrival_city);
+
+	var propertytransport_arrival_date = {
+		name: 'transport_arrival_date',
+		type: 'timestamp'
+	};
+    entityMetadata.properties.push(propertytransport_arrival_date);
+
+	var propertyarrival_country = {
+		name: 'arrival_country',
+		type: 'string'
+	};
+    entityMetadata.properties.push(propertyarrival_country);
+
+	var propertyarrival_long = {
+		name: 'arrival_long',
+		type: 'double'
+	};
+    entityMetadata.properties.push(propertyarrival_long);
+
+	var propertyarrival_lat = {
+		name: 'arrival_lat',
+		type: 'double'
+	};
+    entityMetadata.properties.push(propertyarrival_lat);
 
 
-
-
-	exports.println(JSON.stringify(entityMetadata));
+	response.println(JSON.stringify(entityMetadata));
 };
 
 exports.hasConflictingParameters = function(id, count, metadata) {
@@ -227,7 +257,7 @@ exports.hasConflictingParameters = function(id, count, metadata) {
         return true;
     }
     return false;
-};
+}
 
 // check whether the parameter exists 
 exports.isInputParameterValid = function(paramName) {
@@ -237,7 +267,7 @@ exports.isInputParameterValid = function(paramName) {
         return false;
     }
     return true;
-};
+}
 
 // print error
 exports.printError = function(httpCode, errCode, errMessage, errContext) {
@@ -249,4 +279,5 @@ exports.printError = function(httpCode, errCode, errMessage, errContext) {
     if (errContext !== null) {
     	console.error(JSON.stringify(errContext));
     }
-};
+}
+

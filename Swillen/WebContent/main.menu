@@ -1,13 +1,32 @@
 [
     {
         "name": "Welcome",
-        "link": "index.html",
+        "link": "../Vili_project/destinations.html",
         "subMenu": []
     },
     {
         "name": "Transport",
-        "link": "transport/transport.html",
+        "link": "../transport/transport.html",
         "subMenu": []
-            }
-    
-    ]
+    },
+    {
+        "name" : "Events",
+        "link" : "../Events/events.html",
+        "subMenu": []
+    },
+    {
+        "name" : "Hotels",
+        "link" : "../hotels/hotels.html",
+        "subMenu": []
+    },
+    {
+        "name" : "Entertainments",
+        "link" : "../Entertainments_and_Sightseeings/Entertainments.html",
+        "subMenu": []
+    },
+    {
+        "name" : "Sightseeings",
+        "link" : "../Entertainments_and_Sightseeings/Sightseeings.html",
+        "subMenu": []
+    }
+]

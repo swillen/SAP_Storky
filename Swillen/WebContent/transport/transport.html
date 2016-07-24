@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" ng-app="page">
+<html lang="en" ng-app="transport">
 
 <head>
     <meta charset="utf-8">
@@ -15,11 +15,11 @@
 
 <body>
     <div ng-include="'../header.html'"></div>
-
+	
     <div id="wrap" ng-controller="GetCitiesController">
         <div class="row">
             <div class="col-lg-12">
-                <h1 class="page-header"></h1>
+                <h3 class="page-header well" style="margin-top:0">Transport</h3>
             </div>
         </div>
         <div class="container">
@@ -43,7 +43,7 @@
                                 From
                             </label>
                             <select class="form-control" id="fromCity" required>
-                                <option ng-repeat="city in data">{{city.airport_city}}</option>
+                                <option ng-repeat="city in data" value={{city.airport_id}}>{{city.airport_city}}</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -51,32 +51,36 @@
                                 To
                             </label>
                             <select class="form-control" id="toCity" required>
-                                <option ng-repeat="city in data">{{city.airport_city}}</option>
+                                <option ng-repeat="city in arrivalCities" value={{city.airport_id}}>{{city.airport_city}}</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label for="datePicker">
                                 Pick Date
                             </label>
-                            <input type="date" class="form-control" id="datePicker" ng-click="getDate()" ng-model="showDate" required>
-                            <!--<h4>{{showDate}}</h4> -->
+                            <input type="date" class="form-control" id="datePicker" ng-click="getDate()" required>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <button class="btn btn-info btn-lg btn-block" ng-click="fillter()" ng-disabled="form.$invalid">Search</button>
-                    </div>
+                    </div><div class="form-group">
+                                         <a href="#!/tickets">
+                      <button class="btn btn-info btn-lg btn-block" ng-click="collectData()">Search</button>
+                             </a>
+                             </div>
                 </form>
-            </div>
-            <div>
+              </div>
               
-            </div>
+              <div ng-view>
+              </div>
         </div>
     </div>
 
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.7/angular.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.7/angular-resource.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.7/angular-animate.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.7/angular-route.js"></script>
+
     <script src="https://angular-ui.github.io/bootstrap/ui-bootstrap-tpls-0.14.3.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="filter.js"></script>
     <script src="transport.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>

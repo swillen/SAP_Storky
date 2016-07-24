@@ -8,7 +8,7 @@ var database = require("db/database");
 var datasource = database.getDatasource();
 
 // read all entities and print them as JSON array to response
-exports.readView_citiesList = function(limit, offset, sort, desc) {
+exports.readView_cities_arrivalList = function(limit, offset, sort, desc) {
     var connection = datasource.getConnection();
     try {
         var result = [];
@@ -16,7 +16,7 @@ exports.readView_citiesList = function(limit, offset, sort, desc) {
         if (limit !== null && offset !== null) {
             sql += " " + datasource.getPaging().genTopAndStart(limit, offset);
         }
-        sql += " * FROM VIEW_CITIES";
+        sql += " * FROM VIEW_CITIES_ARRIVAL";
         if (sort !== null) {
             sql += " ORDER BY " + sort;
         }
@@ -40,9 +40,8 @@ exports.readView_citiesList = function(limit, offset, sort, desc) {
         connection.close();
     }
 };
-
 //read entities by chosen type (e.g Airplane)
-exports.readView_citiesListByType = function(type, limit, offset, sort, desc) {
+exports.readView_cities_arrivalListByType = function(type, limit, offset, sort, desc) {
     var connection = datasource.getConnection();
     try {
         var result = [];
@@ -50,7 +49,7 @@ exports.readView_citiesListByType = function(type, limit, offset, sort, desc) {
         if (limit !== null && offset !== null) {
             sql += " " + datasource.getPaging().genTopAndStart(limit, offset);
         }
-        sql += " * FROM VIEW_CITIES";
+        sql += " * FROM VIEW_CITIES_ARRIVAL";
          if (type !== null) {
     	sql += " WHERE TRANSPORT_TYPE = " + "'" + type + "'"  ;
  	   }
@@ -81,7 +80,7 @@ exports.readView_citiesListByType = function(type, limit, offset, sort, desc) {
 
 //read all cities by name for any type of transport
 
-exports.readView_citiesListByTypeAny = function(limit, offset, sort, desc) {
+exports.readView_cities_arrivalListByTypeAny = function(limit, offset, sort, desc) {
     var connection = datasource.getConnection();
     
     try {
@@ -90,7 +89,7 @@ exports.readView_citiesListByTypeAny = function(limit, offset, sort, desc) {
         if (limit !== null && offset !== null) {
             sql += " " + datasource.getPaging().genTopAndStart(limit, offset);
         }
-        sql += "AIRPORT_CITY,AIRPORT_ID FROM VIEW_CITIES GROUP BY AIRPORT_CITY,AIRPORT_ID";
+        sql += "AIRPORT_CITY,AIRPORT_ID FROM VIEW_CITIES_ARRIVAL GROUP BY AIRPORT_CITY,AIRPORT_ID";
              
         if (sort !== null) {
             sql += " ORDER BY " + sort;
@@ -122,16 +121,17 @@ function createEntity2(resultSet) {
        result.airport_id = resultSet.getInt("AIRPORT_ID")
        return result;
 }
+
 //create entity as JSON object from ResultSet current Row
 function createEntity(resultSet) {
     var result = {};
     result.transport_type = resultSet.getString("TRANSPORT_TYPE");
+	result.airport_id = resultSet.getInt("AIRPORT_ID");
     result.airport_city = resultSet.getString("AIRPORT_CITY");
     result.airport_latitude = resultSet.getDouble("AIRPORT_LATITUDE");
     result.airport_longitude = resultSet.getDouble("AIRPORT_LONGITUDE");
     result.airport_country = resultSet.getString("AIRPORT_COUNTRY");
     result.airport_timezone = resultSet.getDouble("AIRPORT_TIMEZONE");
-	result.airport_id = resultSet.getInt("AIRPORT_ID");	
     return result;
 }
 
@@ -140,14 +140,14 @@ function convertToDateString(date) {
     var month = date.getMonth() < 10 ? "0" + date.getMonth() : date.getMonth();
     var dateOfMonth = date.getDate() < 10 ? "0" + date.getDate() : date.getDate();
     return fullYear + "/" + month + "/" + dateOfMonth;
-};
+}
 
 
-exports.countView_cities = function() {
+exports.countView_cities_arrival = function() {
     var count = 0;
     var connection = datasource.getConnection();
     try {
-    	var sql = 'SELECT COUNT(*) FROM VIEW_CITIES';
+    	var sql = 'SELECT COUNT(*) FROM VIEW_CITIES_ARRIVAL';
         var statement = connection.prepareStatement(sql);
         var rs = statement.executeQuery();
         if (rs.next()) {
@@ -162,19 +162,25 @@ exports.countView_cities = function() {
     response.println(count);
 };
 
-
-
-exports.metadataView_cities = function() {
+exports.metadataView_cities_arrival = function() {
 	var entityMetadata = {
-		name: 'view_cities',
+		name: 'view_cities_arrival',
 		type: 'object',
 		properties: []
 	};
+	
 	var propertytransport_type = {
-	name: 'tranport_type',
-	type: 'string'
-}
-	entityMetadata.properties.push(propertytransport_type);
+		name: 'transport_type',
+		type: 'string'
+	};
+    entityMetadata.properties.push(propertytransport_type);
+
+	var propertyairport_id = {
+		name: 'airport_id',
+		type: 'integer'
+	};
+    entityMetadata.properties.push(propertyairport_id);
+
 	var propertyairport_city = {
 		name: 'airport_city',
 		type: 'string'
@@ -197,24 +203,16 @@ exports.metadataView_cities = function() {
 		name: 'airport_country',
 		type: 'string'
 	};
-	entityMetadata.properties.push(propertyairport_country);
-	
+    entityMetadata.properties.push(propertyairport_country);
+
 	var propertyairport_timezone = {
-	name: "airport_timezone",
-	type: "double"
-};
-	entityMetadata.properties.push(propertyairport_timezone);
-	
-		var propertyairport_id = {
-		name: 'airport_id',
-		type: 'integer'
+		name: 'airport_timezone',
+		type: 'double'
 	};
-    entityMetadata.properties.push(propertyairport_id);
+    entityMetadata.properties.push(propertyairport_timezone);
 
 
-
-
-	exports.println(JSON.stringify(entityMetadata));
+	response.println(JSON.stringify(entityMetadata));
 };
 
 exports.hasConflictingParameters = function(id, count, metadata) {
@@ -223,11 +221,11 @@ exports.hasConflictingParameters = function(id, count, metadata) {
         return true;
     }
     if(id !== null && metadata !== null){
-    	exports.printError(response.EXPECTATION_FAILED, 2, "Expectation failed: conflicting parameters - id, metadata");
+    	printError(response.EXPECTATION_FAILED, 2, "Expectation failed: conflicting parameters - id, metadata");
         return true;
     }
     return false;
-};
+}
 
 // check whether the parameter exists 
 exports.isInputParameterValid = function(paramName) {
@@ -237,7 +235,7 @@ exports.isInputParameterValid = function(paramName) {
         return false;
     }
     return true;
-};
+}
 
 // print error
 exports.printError = function(httpCode, errCode, errMessage, errContext) {
@@ -249,4 +247,5 @@ exports.printError = function(httpCode, errCode, errMessage, errContext) {
     if (errContext !== null) {
     	console.error(JSON.stringify(errContext));
     }
-};
+}
+

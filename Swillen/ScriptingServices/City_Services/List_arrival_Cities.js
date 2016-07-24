@@ -1,7 +1,7 @@
 /* globals $ */
 /* eslint-env node, dirigible */
 
-var entityView_cities = require('City_Services/List_Cities_lib');
+var entityView_cities_arrival = require('City_Services/List_arrival_Cities_lib.js');
 var request = require("net/http/request");
 var response = require("net/http/response");
 var xss = require("utils/xss");
@@ -33,27 +33,29 @@ function handleRequest() {
 		offset = 0;
 	}
 	
-	if(!entityView_cities.hasConflictingParameters(null, count, metadata)) {
+	if(!entityView_cities_arrival.hasConflictingParameters(null, count, metadata)) {
 		// switch based on method type
 		if ((method === 'GET')) {
 			// read
 			if (count !== null) {
-				entityView_cities.countView_cities();
+				entityView_cities_arrival.countView_cities_arrival();
 			} else if (metadata !== null) {
-				entityView_cities.metadataView_cities();
-			} else if (type !== null) {
+				entityView_cities_arrival.metadataView_cities_arrival();
+			}
+			else if (type !== null) {
 				if (type == "Any") {
-					entityView_cities.readView_citiesListByTypeAny(limit,offset,sort,desc);
+					entityView_cities_arrival.readView_cities_arrivalListByTypeAny(limit,offset,sort,desc);
 				} else {
-					entityView_cities.readView_citiesListByType(type,limit,offset,sort,desc);
+					entityView_cities_arrival.readView_cities_arrivalListByType(type,limit,offset,sort,desc);
 				}
 
-					} else {
-				entityView_cities.readView_citiesList(limit, offset, sort, desc);
+					}
+			else {
+				entityView_cities_arrival.readView_cities_arrivalList(limit, offset, sort, desc);
 			}
 		} else {
 			// create, update, delete
-			entityView_cities.printError(response.METHOD_NOT_ALLOWED, 4, "Method not allowed"); 
+			entityView_cities_arrival.printError(response.METHOD_NOT_ALLOWED, 4, "Method not allowed"); 
 		}
 	}
 	

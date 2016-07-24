@@ -8,23 +8,23 @@ var database = require("db/database");
 var datasource = database.getDatasource();
 
 // create entity by parsing JSON object from request body
-exports.createTransports = function() {
+exports.createTickets = function() {
     var input = request.readInputText();
     var requestBody = JSON.parse(input);
     var connection = datasource.getConnection();
     try {
-        var sql = "INSERT INTO TRANSPORTS (";
+        var sql = "INSERT INTO TICKETS (";
+        sql += "TICKET_ID";
+        sql += ",";
+        sql += "TICKET_CLASS";
+        sql += ",";
+        sql += "TICKET_PRICE";
+        sql += ",";
+        sql += "TICKET_QUANTITY";
+        sql += ",";
+        sql += "TICKET_AVAILABLE";
+        sql += ",";
         sql += "TRANSPORT_ID";
-        sql += ",";
-        sql += "TRANSPORT_TYPE";
-        sql += ",";
-        sql += "TRANSPORT_DEPARTURE_DATE";
-        sql += ",";
-        sql += "TRANSPORT_ARRIVAL_DATE";
-        sql += ",";
-        sql += "DEPARTURE_CITY_ID";
-        sql += ",";
-        sql += "ARRIVAL_CITY_ID";
         sql += ") VALUES ("; 
         sql += "?";
         sql += ",";
@@ -41,23 +41,13 @@ exports.createTransports = function() {
 
         var statement = connection.prepareStatement(sql);
         var i = 0;
-        var id = datasource.getSequence('TRANSPORTS_TRANSPORT_ID').next();
+        var id = datasource.getSequence('TICKETS_TICKET_ID').next();
         statement.setInt(++i, id);
-        statement.setString(++i, requestBody.transport_type);
-        if (requestBody.transport_departure_date !== null) {
-            var js_date_transport_departure_date =  new Date(Date.parse(requestBody.transport_departure_date));
-            statement.setTimestamp(++i, js_date_transport_departure_date);
-        } else {
-            statement.setTimestamp(++i, null);
-        }
-        if (requestBody.transport_arrival_date !== null) {
-            var js_date_transport_arrival_date =  new Date(Date.parse(requestBody.transport_arrival_date));
-            statement.setTimestamp(++i, js_date_transport_arrival_date);
-        } else {
-            statement.setTimestamp(++i, null);
-        }
-        statement.setInt(++i, requestBody.departure_city_id);
-        statement.setInt(++i, requestBody.arrival_city_id);
+        statement.setString(++i, requestBody.ticket_class);
+        statement.setDouble(++i, requestBody.ticket_price);
+        statement.setInt(++i, requestBody.ticket_quantity);
+        statement.setInt(++i, requestBody.ticket_available);
+        statement.setInt(++i, requestBody.transport_id);
         statement.executeUpdate();
 		response.println(id);
         return id;
@@ -71,11 +61,11 @@ exports.createTransports = function() {
 };
 
 // read single entity by id and print as JSON object to response
-exports.readTransportsEntity = function(id) {
+exports.readTicketsEntity = function(id) {
     var connection = datasource.getConnection();
     try {
         var result;
-        var sql = "SELECT * FROM TRANSPORTS WHERE " + exports.pkToSQL();
+        var sql = "SELECT * FROM TICKETS WHERE " + exports.pkToSQL();
         var statement = connection.prepareStatement(sql);
         statement.setInt(1, id);
         
@@ -96,7 +86,7 @@ exports.readTransportsEntity = function(id) {
 };
 
 // read all entities and print them as JSON array to response
-exports.readTransportsList = function(limit, offset, sort, desc) {
+exports.readTicketsList = function(limit, offset, sort, desc) {
     var connection = datasource.getConnection();
     try {
         var result = [];
@@ -104,7 +94,7 @@ exports.readTransportsList = function(limit, offset, sort, desc) {
         if (limit !== null && offset !== null) {
             sql += " " + datasource.getPaging().genTopAndStart(limit, offset);
         }
-        sql += " * FROM TRANSPORTS";
+        sql += " * FROM TICKETS";
         if (sort !== null) {
             sql += " ORDER BY " + sort;
         }
@@ -129,20 +119,19 @@ exports.readTransportsList = function(limit, offset, sort, desc) {
     }
 };
 
-// read all entities by type and print them as JSON array to response
-exports.readTransportsByType = function(type, limit, offset, sort, desc) {
-    var connection = datasource.getConnection();
+// read filtered entities and return as Json
+exports.getFiltered =  function (type,fromCity, toCity,limit, offset,sort,desc){
+ var connection = datasource.getConnection();
     try {
-    	
         var result = [];
         var sql = "SELECT ";
         if (limit !== null && offset !== null) {
             sql += " " + datasource.getPaging().genTopAndStart(limit, offset);
         }
-        sql += " * FROM TRANSPORTS";
-        if (type !== null) {
-    	sql += " WHERE TRANSPORT_TYPE = " + "'" + type +"'"  ;
-    }
+        sql += " * FROM VIEW_TICKETS";
+        if(type !==null && fromCity !== null && toCity !== null) {
+    	sql += " WHERE TR.TRANSPORT_TYPE = " + "'" + type + "'" + "TR.DEPARTURE_CITY_ID = " + fromCity  + "TR.Arrival_city_id = " + toCity;    
+    	}
 
         if (sort !== null) {
             sql += " ORDER BY " + sort;
@@ -171,20 +160,12 @@ exports.readTransportsByType = function(type, limit, offset, sort, desc) {
 //create entity as JSON object from ResultSet current Row
 function createEntity(resultSet) {
     var result = {};
+	result.ticket_id = resultSet.getInt("TICKET_ID");
+    result.ticket_class = resultSet.getString("TICKET_CLASS");
+    result.ticket_price = resultSet.getDouble("TICKET_PRICE");
+	result.ticket_quantity = resultSet.getInt("TICKET_QUANTITY");
+	result.ticket_available = resultSet.getInt("TICKET_AVAILABLE");
 	result.transport_id = resultSet.getInt("TRANSPORT_ID");
-    result.transport_type = resultSet.getString("TRANSPORT_TYPE");
-    if (resultSet.getTimestamp("TRANSPORT_DEPARTURE_DATE") !== null) {
-        result.transport_departure_date = new Date(resultSet.getTimestamp("TRANSPORT_DEPARTURE_DATE").getTime());
-    } else {
-        result.transport_departure_date = null;
-    }
-    if (resultSet.getTimestamp("TRANSPORT_ARRIVAL_DATE") !== null) {
-        result.transport_arrival_date = new Date(resultSet.getTimestamp("TRANSPORT_ARRIVAL_DATE").getTime());
-    } else {
-        result.transport_arrival_date = null;
-    }
-	result.departure_city_id = resultSet.getInt("DEPARTURE_CITY_ID");
-	result.arrival_city_id = resultSet.getInt("ARRIVAL_CITY_ID");
     return result;
 }
 
@@ -196,40 +177,30 @@ function convertToDateString(date) {
 }
 
 // update entity by id
-exports.updateTransports = function() {
+exports.updateTickets = function() {
     var input = request.readInputText();
     var responseBody = JSON.parse(input);
     var connection = datasource.getConnection();
     try {
-        var sql = "UPDATE TRANSPORTS SET ";
-        sql += "TRANSPORT_TYPE = ?";
+        var sql = "UPDATE TICKETS SET ";
+        sql += "TICKET_CLASS = ?";
         sql += ",";
-        sql += "TRANSPORT_DEPARTURE_DATE = ?";
+        sql += "TICKET_PRICE = ?";
         sql += ",";
-        sql += "TRANSPORT_ARRIVAL_DATE = ?";
+        sql += "TICKET_QUANTITY = ?";
         sql += ",";
-        sql += "DEPARTURE_CITY_ID = ?";
+        sql += "TICKET_AVAILABLE = ?";
         sql += ",";
-        sql += "ARRIVAL_CITY_ID = ?";
-        sql += " WHERE TRANSPORT_ID = ?";
+        sql += "TRANSPORT_ID = ?";
+        sql += " WHERE TICKET_ID = ?";
         var statement = connection.prepareStatement(sql);
         var i = 0;
-        statement.setString(++i, responseBody.transport_type);
-        if (responseBody.transport_departure_date !== null) {
-            var js_date_transport_departure_date =  new Date(Date.parse(responseBody.transport_departure_date));
-            statement.setTimestamp(++i, js_date_transport_departure_date);
-        } else {
-            statement.setTimestamp(++i, null);
-        }
-        if (responseBody.transport_arrival_date !== null) {
-            var js_date_transport_arrival_date =  new Date(Date.parse(responseBody.transport_arrival_date));
-            statement.setTimestamp(++i, js_date_transport_arrival_date);
-        } else {
-            statement.setTimestamp(++i, null);
-        }
-        statement.setInt(++i, responseBody.departure_city_id);
-        statement.setInt(++i, responseBody.arrival_city_id);
-        var id = responseBody.transport_id;
+        statement.setString(++i, responseBody.ticket_class);
+        statement.setDouble(++i, responseBody.ticket_price);
+        statement.setInt(++i, responseBody.ticket_quantity);
+        statement.setInt(++i, responseBody.ticket_available);
+        statement.setInt(++i, responseBody.transport_id);
+        var id = responseBody.ticket_id;
         statement.setInt(++i, id);
         statement.executeUpdate();
 		response.println(id);
@@ -242,10 +213,10 @@ exports.updateTransports = function() {
 };
 
 // delete entity
-exports.deleteTransports = function(id) {
+exports.deleteTickets = function(id) {
     var connection = datasource.getConnection();
     try {
-    	var sql = "DELETE FROM TRANSPORTS WHERE " + exports.pkToSQL();
+    	var sql = "DELETE FROM TICKETS WHERE " + exports.pkToSQL();
         var statement = connection.prepareStatement(sql);
         statement.setString(1, id);
         statement.executeUpdate();
@@ -258,11 +229,11 @@ exports.deleteTransports = function(id) {
     }
 };
 
-exports.countTransports = function() {
+exports.countTickets = function() {
     var count = 0;
     var connection = datasource.getConnection();
     try {
-    	var sql = 'SELECT COUNT(*) FROM TRANSPORTS';
+    	var sql = 'SELECT COUNT(*) FROM TICKETS';
         var statement = connection.prepareStatement(sql);
         var rs = statement.executeQuery();
         if (rs.next()) {
@@ -277,50 +248,50 @@ exports.countTransports = function() {
     response.println(count);
 };
 
-exports.metadataTransports = function() {
+exports.metadataTickets = function() {
 	var entityMetadata = {
-		name: 'transports',
+		name: 'tickets',
 		type: 'object',
 		properties: []
 	};
 	
-	var propertytransport_id = {
-		name: 'transport_id',
+	var propertyticket_id = {
+		name: 'ticket_id',
 		type: 'integer',
 	key: 'true',
 	required: 'true'
 	};
-    entityMetadata.properties.push(propertytransport_id);
+    entityMetadata.properties.push(propertyticket_id);
 
-	var propertytransport_type = {
-		name: 'transport_type',
+	var propertyticket_class = {
+		name: 'ticket_class',
 		type: 'string'
 	};
-    entityMetadata.properties.push(propertytransport_type);
+    entityMetadata.properties.push(propertyticket_class);
 
-	var propertytransport_departure_date = {
-		name: 'transport_departure_date',
-		type: 'timestamp'
+	var propertyticket_price = {
+		name: 'ticket_price',
+		type: 'double'
 	};
-    entityMetadata.properties.push(propertytransport_departure_date);
+    entityMetadata.properties.push(propertyticket_price);
 
-	var propertytransport_arrival_date = {
-		name: 'transport_arrival_date',
-		type: 'timestamp'
-	};
-    entityMetadata.properties.push(propertytransport_arrival_date);
-
-	var propertydeparture_city_id = {
-		name: 'departure_city_id',
+	var propertyticket_quantity = {
+		name: 'ticket_quantity',
 		type: 'integer'
 	};
-    entityMetadata.properties.push(propertydeparture_city_id);
+    entityMetadata.properties.push(propertyticket_quantity);
 
-	var propertyarrival_city_id = {
-		name: 'arrival_city_id',
+	var propertyticket_available = {
+		name: 'ticket_available',
 		type: 'integer'
 	};
-    entityMetadata.properties.push(propertyarrival_city_id);
+    entityMetadata.properties.push(propertyticket_available);
+
+	var propertytransport_id = {
+		name: 'transport_id',
+		type: 'integer'
+	};
+    entityMetadata.properties.push(propertytransport_id);
 
 
 	response.println(JSON.stringify(entityMetadata));
@@ -329,7 +300,7 @@ exports.metadataTransports = function() {
 exports.getPrimaryKeys = function() {
     var result = [];
     var i = 0;
-    result[i++] = 'TRANSPORT_ID';
+    result[i++] = 'TICKET_ID';
     if (result === 0) {
         throw new Error("There is no primary key");
     } else if(result.length > 1) {
@@ -349,7 +320,7 @@ exports.pkToSQL = function() {
 
 exports.hasConflictingParameters = function(id, count, metadata) {
     if(id !== null && count !== null){
-    	response.printError(response.EXPECTATION_FAILED, 1, "Expectation failed: conflicting parameters - id, count");
+    	exports.printError(response.EXPECTATION_FAILED, 1, "Expectation failed: conflicting parameters - id, count");
         return true;
     }
     if(id !== null && metadata !== null){
@@ -363,7 +334,7 @@ exports.hasConflictingParameters = function(id, count, metadata) {
 exports.isInputParameterValid = function(paramName) {
     var param = request.getParameter(paramName);
     if(param === null || param === undefined){
-    	response.printError(response.PRECONDITION_FAILED, 3, "Expected parameter is missing: " + paramName);
+    	exports.printError(response.PRECONDITION_FAILED, 3, "Expected parameter is missing: " + paramName);
         return false;
     }
     return true;

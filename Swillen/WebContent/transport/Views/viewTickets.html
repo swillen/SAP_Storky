@@ -1,0 +1,52 @@
+<div class="col-lg-8 .col-lg-offset-4" ng-controller="GetCitiesController">
+    <div ng-if="noTickets">
+        <div class="alert alert-danger" role="alert">Oh snap! There are no tickets for that day!</div>
+    </div>
+    <div ng-if="!noTickets">
+    		Sort by:
+    		<div class="btn-group btn-group-xs">
+            <button type="button" class="btn btn-default" ng-click="sortBy('ticket_price')">Price</button>
+            <button type="button" class="btn btn-default" ng-click="sortBy('ticket_class')">Class</button>
+            </div>
+    </div>
+	<div class="jumbotron" style="padding: 15px 15px 55px 15px; background-color:white;border:1px solid #ccc;border-radius:4;box-shadow: inset 0 1px 1px rgba(0,0,0,.075)" ng-repeat="data in dataTickets | orderBy:propertyName:reverse">
+                                        <div class="table-responsive">
+                        <table class="table table-stripped table-hover table-condensed">
+                            <thead>
+                                <tr>
+                                    <th>Travel By</th>
+                                    <th>From</th>
+                                    <th>To</th>
+                                    <th>Class</th>
+                                    <th>Price</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>{{data.transport_type}}</td>
+                                    <td>{{data.departure_city}}</td>
+                                    <td>{{data.arrival_city}}</td>
+                                    <td>{{data.ticket_class}}</td>
+                                    <td>{{data.ticket_price}} BGN</td>
+                                    <td>{{data.transport_departure_date}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <form action="buy">
+                            <div>
+                                <a class="btn btn-success btn-md" style="float:right;" href="#" role="button">Buy Ticket</a>
+                                <select class="form-control" style="width:9%;float:right; display:inline-block;">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+</div>
